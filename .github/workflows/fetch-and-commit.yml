@@ -1,0 +1,38 @@
+name: Fetch & Commit
+
+on:
+  workflow_dispatch:
+  # belmont police blotter is no longer being published, so I'm stopping the scheduled fetch
+  # schedule:
+    # - cron:  "0 5 * * *" # 5 AM UTC every day
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:   
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 checkout
+        uses: actions/checkout@v4
+      - name: 💎 setup ruby
+        uses: ruby/setup-ruby@036ef458ddccddb148a2b9fb67e95a22fdbf728b # v1.160.0
+        with:
+          bundler-cache: true
+          cache-version: 0
+      - name: Fetch the new PDFs and parse them
+        run: bundle exec rake fetch_and_parse_all_pdfs
+      - name: Commit and push all changed files
+        run: |
+          echo "$(date)" > last_pulled.txt
+          git config --global user.name "Justin Kenyon"
+          git config --global user.email "kenyonj@gmail.com"
+          git add .
+          git commit -a -m "Committing latest data for incidents."
+          git push
